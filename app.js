@@ -4,15 +4,12 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const expressValidator = require('express-validator');
 const flash = require('connect-flash');
-const session = require('express-session');
-const passport = require('passport');
 const config = require('./config/database');
 var schedule = require('node-schedule');
 const http = require('http');
 var fileUpload = require('express-fileupload');
 var util = require('./serverjs/util.js');
 var updatedb = require('./serverjs/updatecards.js');
-const secrets = require('../cubecobrasecrets/secrets');
 
 // Connect db
 mongoose.connect(config.database);
@@ -55,16 +52,6 @@ app.set('view engine', 'pug');
 // Set Public Folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Express session middleware
-app.use(session({
-  secret: secrets.session,
-  resave: true,
-  saveUninitialized: true,
-  cooke: {
-    secure: true
-  }
-}));
-
 //Express messages middleware
 app.use(require('connect-flash')());
 app.use(function(req, res, next) {
@@ -90,16 +77,6 @@ app.use(expressValidator({
   }
 }));
 
-// Passport config and middleware
-require('./config/passport')(passport);
-app.use(passport.initialize());
-app.use(passport.session());
-
-app.get('*', function(req, res, next) {
-  res.locals.user = req.user || null;
-  next();
-});
-
 // Home route
 app.get('/', function(req, res) {
   const routeReady = () => {
@@ -117,7 +94,19 @@ app.get('/', function(req, res) {
   var user_id = '';
   var recents, drafted, blog, decks;
 
-  if (req.user) user_id = req.user._id;
+  //if (req.user) user_id = req.user._id;
+  if(req.token) {
+    util.jwt_verify(req.token, function(err, token) {
+      if(err) {
+        //TODO: Handle Errors, maybe redirect to login? Not sure how a user would get a bad token.
+      } else {
+        user_id = token.user;
+        prepare_home();
+      }
+    });
+  }
+});
+function prepare_home() {
   Cube.find({
     'card_count': {
       $gt: 200
@@ -198,8 +187,7 @@ app.get('/', function(req, res) {
 
     routeReady();
   });
-});
-
+}
 
 //format: {search};{search};{search}:{page}
 //list like:
@@ -261,67 +249,75 @@ app.get('/search/:id', function(req, res) {
   });
 
   var user_id = '';
-  if (req.user) user_id = req.user._id;
-  query = {
-    $and: [query,
-      {
-        $or: [{
-            'isListed': true
-          },
-          {
-            'owner': user_id
-          }
-        ]
-      }
-    ]
-  };
+  if(req.token) {
+    util.jwt_verify(token, function(err, token) {
+      if(err) {
+        //TODO: handle errors, maybe redirect to login? not sure how user gets bad token
+      } else {
+        user_id = token.user;
+        query = {
+          $and: [query,
+            {
+              $or: [{
+                  'isListed': true
+                },
+                {
+                  'owner': user_id
+                }
+              ]
+            }
+          ]
+        };
 
-  Cube.find(query).sort({
-    'date_updated': -1
-  }).exec(function(err, cubes) {
-    var pages = [];
-    if (cubes.length > 12) {
-      if (!page) {
-        page = 0;
+        Cube.find(query).sort({
+          'date_updated': -1
+        }).exec(function(err, cubes) {
+          var pages = [];
+          if (cubes.length > 12) {
+            if (!page) {
+              page = 0;
+            }
+            for (i = 0; i < cubes.length / 12; i++) {
+              if (page == i) {
+                pages.push({
+                  url: raw_split[0] + ':' + i,
+                  content: (i + 1),
+                  active: true
+                });
+              } else {
+                pages.push({
+                  url: raw_split[0] + ':' + i,
+                  content: (i + 1)
+                });
+              }
+            }
+            cube_page = [];
+            for (i = 0; i < 12; i++) {
+              if (cubes[i + page * 12]) {
+                cube_page.push(cubes[i + page * 12]);
+              }
+            }
+            res.render('search', {
+              results: cube_page,
+              search: req.params.id,
+              terms: terms,
+              pages: pages,
+              numresults: cubes.length,
+              loginCallback: '/search/' + req.params.id
+            });
+          } else {
+            res.render('search', {
+              results: cubes,
+              search: req.params.id,
+              terms: terms,
+              numresults: cubes.length,
+              loginCallback: '/search/' + req.params.id
+            });
+          }
+        });
       }
-      for (i = 0; i < cubes.length / 12; i++) {
-        if (page == i) {
-          pages.push({
-            url: raw_split[0] + ':' + i,
-            content: (i + 1),
-            active: true
-          });
-        } else {
-          pages.push({
-            url: raw_split[0] + ':' + i,
-            content: (i + 1)
-          });
-        }
-      }
-      cube_page = [];
-      for (i = 0; i < 12; i++) {
-        if (cubes[i + page * 12]) {
-          cube_page.push(cubes[i + page * 12]);
-        }
-      }
-      res.render('search', {
-        results: cube_page,
-        search: req.params.id,
-        terms: terms,
-        pages: pages,
-        numresults: cubes.length,
-        loginCallback: '/search/' + req.params.id
-      });
-    } else {
-      res.render('search', {
-        results: cubes,
-        search: req.params.id,
-        terms: terms,
-        numresults: cubes.length,
-        loginCallback: '/search/' + req.params.id
-      });
-    }
-  });
+    });
+  }
 });
 
 app.get('/contact', function(req, res) {

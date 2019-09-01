@@ -5,6 +5,7 @@ const passport = require('passport');
 const emailconfig = require('../../cubecobrasecrets/email');
 const mailer = require("nodemailer");
 const fs = require('fs')
+const jwt = require('jsonwebtoken');
 
 // Bring in models
 let User = require('../models/user')
@@ -330,11 +331,7 @@ router.post('/login', function(req, res, next) {
           if (req.body.loginCallback) {
             redirect = req.body.loginCallback;
           }
-          passport.authenticate('local', {
-            successRedirect: redirect,
-            failureRedirect: '/user/Login',
-            failureFlash: true
-          })(req, res, next);
+
         } else {
           req.flash('danger', 'User not confirmed. Please check your email for confirmation link.');
           res.redirect('/user/login');

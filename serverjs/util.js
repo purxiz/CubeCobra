@@ -1,7 +1,38 @@
 var shuffleSeed = require('shuffle-seed');
+const jwt = require('jsonwebtoken');
+const secrets = require('../../cubecobrasecrets/secrets');
 
-function generate_edit_token() {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+function jwt_sign(username, userid, callback) {
+  let token = jwt.sign(
+    { user: {
+        name: username,
+        _id: userid
+      }
+    }, 
+    secrets.session, 
+    {expiresIn: '365d'},
+    function(err, token) {
+      if(err) {
+        callback(err, null);
+      } else {
+        callback(null, token);
+      }
+    }); 
+}
+
+function jwt_verify(token, callback) {
+  jwt.verify(token, secrets.session, function(err, decoded) {
+    if(err) {
+      callback(err, null);
+    } else {
+      callback(null, decoded);
+    }
+  });
+}
+
+//return user with little/no overhead
+function jwt_decode(token) {
+  return jwt.decode(token);
 }
 
 function add_word(obj, word) {
