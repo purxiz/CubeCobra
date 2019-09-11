@@ -55,6 +55,7 @@ $('#compareButton').click(function(e) {
   if (id_b) window.location.href = '/cube/compare/' + id_a + '/to/' + id_b;
 });
 
+<<<<<<< HEAD
 $('#addFilterButton').click(function(e) {
   var filterType = $('#filterType').val();
   filters.push({
@@ -63,6 +64,19 @@ $('#addFilterButton').click(function(e) {
     not: false
   });
   updateFilters();
+=======
+$('#filterButton').click(function(e) {
+  var filterText = $('#filterInput').val();
+  console.log(filterText);
+  updateFilters(filterText);
+});
+
+$('#filterInput').keyup(function(e) {
+  if (e.keyCode === 13) {
+    e.preventDefault();
+    filterButton.click();
+  }
+>>>>>>> 4e13ff0... removed erroneous check
 });
 
 $('.updateButton').click(function(e) {
