@@ -55,16 +55,6 @@ $('#compareButton').click(function(e) {
   if (id_b) window.location.href = '/cube/compare/' + id_a + '/to/' + id_b;
 });
 
-<<<<<<< HEAD
-$('#addFilterButton').click(function(e) {
-  var filterType = $('#filterType').val();
-  filters.push({
-    category: filterType,
-    value: getLabels(filterType)[0],
-    not: false
-  });
-  updateFilters();
-=======
 $('#filterButton').click(function(e) {
   var filterText = $('#filterInput').val();
   console.log(filterText);
