@@ -66,7 +66,6 @@ $('#filterInput').keyup(function(e) {
     e.preventDefault();
     filterButton.click();
   }
->>>>>>> 4e13ff0... removed erroneous check
 });
 
 $('.updateButton').click(function(e) {
